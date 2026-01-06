@@ -1,0 +1,628 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>Seamos Tú y Yo</title>
+  <style>
+    :root{
+      /* Ajusta para alinear el brillo con tu luna del dibujo */
+      --moon-x: 50%;
+      --moon-y: 22%;
+      --moon-opacity: 0.35;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; margin: 0; }
+    body{
+      overflow: hidden;
+      touch-action: manipulation;
+      -webkit-tap-highlight-color: transparent;
+      background: #000;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+    }
+
+    #scene{
+      position: fixed;
+      inset: 0;
+      background-image: url("Fondo.png");
+      background-size: cover;
+      background-position: center center;
+      background-repeat: no-repeat;
+      display: grid;
+      place-items: center;
+      user-select: none;
+    }
+
+    #stars{
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.35;
+      mix-blend-mode: screen;
+      filter: blur(0.2px);
+    }
+
+    #moonGlow{
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at var(--moon-x) var(--moon-y),
+          rgba(255,255,255,var(--moon-opacity)) 0%,
+          rgba(255,255,255, calc(var(--moon-opacity) * 0.35)) 18%,
+          rgba(255,255,255, 0.10) 34%,
+          rgba(255,255,255, 0.00) 62%);
+      filter: blur(0.5px);
+    }
+
+    #hint{
+      position: absolute;
+      left: 50%;
+      bottom: 14px;
+      transform: translateX(-50%);
+      padding: 10px 14px;
+      border-radius: 999px;
+      background: rgba(0,0,0,0.35);
+      color: rgba(255,255,255,0.9);
+      font-size: 14px;
+      letter-spacing: 0.2px;
+      backdrop-filter: blur(6px);
+      pointer-events: none;
+      transition: opacity 400ms ease;
+    }
+    #hint.hidden{ opacity: 0; }
+
+    /* ===== Botones UI ===== */
+    .uiBtn{
+      z-index: 10;
+      border: 0;
+      border-radius: 999px;
+      padding: 10px 12px;
+      background: rgba(0,0,0,0.45);
+      color: rgba(255,255,255,0.92);
+      font-size: 14px;
+      backdrop-filter: blur(8px);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      touch-action: manipulation;
+    }
+    .uiBtn:active{ transform: scale(0.98); }
+
+    #nextSongBtn{
+      position: absolute;
+      top: 12px;
+      right: 12px;
+    }
+
+    #roscaBtn{
+      position: absolute;
+      top: 12px;
+      right: 132px; /* deja espacio al botón de canción */
+    }
+
+    #songLabel{
+      position: absolute;
+      top: 56px;
+      right: 12px;
+      z-index: 10;
+      padding: 8px 10px;
+      border-radius: 12px;
+      background: rgba(0,0,0,0.35);
+      color: rgba(255,255,255,0.85);
+      font-size: 12px;
+      max-width: min(70vw, 320px);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      backdrop-filter: blur(8px);
+      pointer-events: none;
+      opacity: 0;
+      transition: opacity 250ms ease;
+    }
+    #songLabel.show{ opacity: 1; }
+
+    /* Corazones flotantes */
+    .heart{
+      position: absolute;
+      width: min(70px, 16vw);
+      aspect-ratio: 1 / 1;
+      pointer-events: none;
+      transform: translate(-50%, -50%) scale(0.2);
+      opacity: 0;
+      will-change: transform, opacity;
+      animation: popFloat 900ms ease-out forwards;
+      filter: drop-shadow(0 6px 12px rgba(0,0,0,0.35));
+    }
+
+    @keyframes popFloat{
+      0%   { transform: translate(-50%, -50%) scale(0.25); opacity: 0; }
+      18%  { transform: translate(-50%, -50%) scale(1.05); opacity: 1; }
+      35%  { transform: translate(-50%, -50%) scale(1.00); opacity: 1; }
+      100% { transform: translate(-50%, calc(-50% - 70px)) scale(0.95); opacity: 0; }
+    }
+
+    #tapCatcher{
+      position: absolute;
+      inset: 0;
+      cursor: pointer;
+      background: transparent;
+      border: 0;
+      padding: 0;
+      z-index: 1;
+      touch-action: manipulation;
+    }
+
+    /* ===== Rosca overlay ===== */
+    #roscaOverlay{
+      position: absolute;
+      inset: 0;
+      z-index: 20;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      background: rgba(0,0,0,0.35);
+      backdrop-filter: blur(4px);
+    }
+    #roscaOverlay.show{ display: flex; }
+
+    #roscaPanel{
+      position: relative;
+      width: min(86vw, 420px);
+      aspect-ratio: 1 / 1;
+      display: grid;
+      place-items: center;
+    }
+
+    /* "Rosca" base (un aro suave detrás) */
+    #roscaBase{
+      position: absolute;
+      inset: 6%;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 35% 30%, rgba(255,255,255,0.15), transparent 45%),
+        radial-gradient(circle at 70% 70%, rgba(0,0,0,0.12), transparent 50%),
+        radial-gradient(circle, #d6a26a 0%, #c58b52 45%, #a86f3c 100%);
+      filter: drop-shadow(0 16px 26px rgba(0,0,0,0.35));
+      opacity: 0.55;
+      /* hueco */
+      -webkit-mask: radial-gradient(circle, transparent 0 40%, #000 41%);
+              mask: radial-gradient(circle, transparent 0 40%, #000 41%);
+    }
+
+    /* Pedazo (wedge) */
+    .slice{
+      position: absolute;
+      inset: 6%;
+      border: 0;
+      padding: 0;
+      border-radius: 50%;
+      cursor: pointer;
+      background:
+        radial-gradient(circle at 30% 25%, rgba(255,255,255,0.22), transparent 55%),
+        radial-gradient(circle at 70% 75%, rgba(0,0,0,0.15), transparent 55%),
+        radial-gradient(circle, #e0b07a 0%, #c99258 50%, #a97240 100%);
+      background-blend-mode: screen, multiply, normal;
+
+      clip-path: polygon(50% 50%, 92% 15%, 100% 50%, 92% 85%);
+      -webkit-mask: radial-gradient(circle, transparent 0 40%, #000 41%);
+              mask: radial-gradient(circle, transparent 0 40%, #000 41%);
+
+      transform: rotate(var(--rot));
+      transition: transform 180ms ease, filter 180ms ease, opacity 180ms ease;
+      filter: drop-shadow(0 10px 18px rgba(0,0,0,0.25));
+      touch-action: manipulation;
+    }
+    .slice::after{
+      content:"";
+      position:absolute;
+      inset: 0;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle at 78% 30%, rgba(255, 60, 60, 0.9) 0 4%, transparent 5%),
+        radial-gradient(circle at 82% 62%, rgba(70, 210, 120, 0.9) 0 4%, transparent 5%),
+        radial-gradient(circle at 70% 78%, rgba(255, 210, 60, 0.9) 0 4%, transparent 5%),
+        radial-gradient(circle at 60% 22%, rgba(255,255,255,0.45) 0 10%, transparent 11%),
+        radial-gradient(circle at 64% 40%, rgba(255,255,255,0.25) 0 8%, transparent 9%);
+      opacity: 0.9;
+      pointer-events: none;
+    }
+
+    .slice:hover{ filter: drop-shadow(0 14px 22px rgba(0,0,0,0.34)); }
+    .slice:active{ transform: rotate(var(--rot)) scale(0.985); }
+
+    .slice.disabled{
+      pointer-events: none;
+      opacity: 0.55;
+      filter: grayscale(0.15) drop-shadow(0 10px 18px rgba(0,0,0,0.20));
+    }
+
+    /* Mensaje resultado */
+    #roscaResult{
+      position: absolute;
+      left: 50%;
+      bottom: -6px;
+      transform: translateX(-50%);
+      width: min(88vw, 520px);
+      text-align: center;
+      padding: 12px 14px;
+      border-radius: 16px;
+      background: rgba(0,0,0,0.55);
+      color: rgba(255,255,255,0.95);
+      font-size: 14px;
+      backdrop-filter: blur(10px);
+      box-shadow: 0 14px 30px rgba(0,0,0,0.25);
+      display: none;
+    }
+    #roscaResult.show{ display: block; }
+
+    #munecoPop{
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -58%) scale(0.75);
+      width: min(180px, 44vw);
+      height: auto;
+      opacity: 0;
+      pointer-events: none;
+      filter: drop-shadow(0 18px 28px rgba(0,0,0,0.35));
+    }
+    #munecoPop.show{
+      animation: munecoIn 900ms ease-out forwards;
+    }
+    @keyframes munecoIn{
+      0%   { opacity: 0; transform: translate(-50%, -58%) scale(0.5); }
+      20%  { opacity: 1; transform: translate(-50%, -58%) scale(1.04); }
+      100% { opacity: 1; transform: translate(-50%, -58%) scale(1.00); }
+    }
+
+    #roscaClose{
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      z-index: 30;
+      padding: 10px 12px;
+    }
+  </style>
+</head>
+
+<body>
+  <div id="scene">
+    <canvas id="stars"></canvas>
+    <div id="moonGlow"></div>
+
+    <button id="roscaBtn" class="uiBtn" type="button">🎉 Rosca</button>
+    <button id="nextSongBtn" class="uiBtn" type="button">⏭️ Siguiente</button>
+    <div id="songLabel"></div>
+
+    <button id="tapCatcher" aria-label="Tocar la pantalla"></button>
+    <div id="hint">Toca la pantalla 💜</div>
+
+    <!-- Rosca Overlay -->
+    <div id="roscaOverlay" aria-hidden="true">
+      <button id="roscaClose" class="uiBtn" type="button">✖ Cerrar</button>
+
+      <div id="roscaPanel">
+        <div id="roscaBase"></div>
+        <!-- slices injected by JS -->
+        <img id="munecoPop" alt="Muñeco" />
+        <div id="roscaResult"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /***********************************************************
+     * CONFIG: audios
+     ***********************************************************/
+    const EXT = "mp3";
+
+    const BACKGROUND_TRACKS = [
+      `SonidoDeFondo/1.${EXT}`,
+      `SonidoDeFondo/2.${EXT}`,
+      `SonidoDeFondo/3.${EXT}`,
+      `SonidoDeFondo/4.${EXT}`,
+    ];
+
+    // Clicks son WAV (correcto)
+    const CLICK_SOUNDS = [
+      `SonidosDeClick/1.wav`,
+      `SonidosDeClick/2.wav`,
+      `SonidosDeClick/3.wav`,
+      `SonidosDeClick/4.wav`,
+    ];
+
+    const HEART_SRC = "Corazon.png";
+    const MUNECO_SRC = "Muneco.png";
+
+    /***********************************************************
+     * Música de fondo (playlist + botón siguiente)
+     ***********************************************************/
+    const songLabel = document.getElementById("songLabel");
+    let bgAudio = null;
+    let audioUnlocked = false;
+
+    const STORAGE_KEY = "bgTrackIndex";
+    let trackIndex = 0;
+
+    function loadIndex(){
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const n = Number(raw);
+      if (Number.isFinite(n) && n >= 0 && n < BACKGROUND_TRACKS.length) trackIndex = n;
+    }
+    function saveIndex(){
+      localStorage.setItem(STORAGE_KEY, String(trackIndex));
+    }
+    function prettyName(path){
+      const parts = String(path).split("/");
+      return parts[parts.length - 1];
+    }
+    function showSongLabel(){
+      songLabel.textContent = "🎵 " + prettyName(BACKGROUND_TRACKS[trackIndex]);
+      songLabel.classList.add("show");
+      clearTimeout(showSongLabel._t);
+      showSongLabel._t = setTimeout(() => songLabel.classList.remove("show"), 2200);
+    }
+    function ensureAudioObject(){
+      if (!bgAudio) {
+        bgAudio = new Audio();
+        bgAudio.loop = true;
+        bgAudio.volume = 0.55;
+      }
+      return bgAudio;
+    }
+    function playCurrentTrack(){
+      const a = ensureAudioObject();
+      const src = BACKGROUND_TRACKS[trackIndex];
+      a.src = src;
+      a.currentTime = 0;
+      a.play().catch(() => {});
+      showSongLabel();
+      saveIndex();
+    }
+    function startBackgroundMusic(){
+      if (audioUnlocked) return;
+      audioUnlocked = true;
+      loadIndex();
+      playCurrentTrack();
+    }
+    function nextTrack(){
+      audioUnlocked = true;
+      trackIndex = (trackIndex + 1) % BACKGROUND_TRACKS.length;
+      playCurrentTrack();
+    }
+
+    /***********************************************************
+     * Sonido click (preload + clone para que SIEMPRE suene)
+     ***********************************************************/
+    function pickRandom(arr){
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    const preloadedClick = CLICK_SOUNDS.map(src => {
+      const a = new Audio(src);
+      a.preload = "auto";
+      return a;
+    });
+
+    function playClickSound(){
+      const base = preloadedClick[Math.floor(Math.random() * preloadedClick.length)];
+      const a = base.cloneNode(true);
+      a.volume = 0.9;
+      a.play().catch(() => {});
+    }
+
+    /***********************************************************
+     * Corazón flotante
+     ***********************************************************/
+    const scene = document.getElementById("scene");
+    const hint = document.getElementById("hint");
+
+    function spawnHeart(clientX, clientY){
+      const img = document.createElement("img");
+      img.src = HEART_SRC;
+      img.className = "heart";
+      img.style.left = clientX + "px";
+      img.style.top  = clientY + "px";
+      scene.appendChild(img);
+      img.addEventListener("animationend", () => img.remove(), { once: true });
+    }
+
+    /***********************************************************
+     * Estrellas (canvas)
+     ***********************************************************/
+    const canvas = document.getElementById("stars");
+    const ctx = canvas.getContext("2d");
+    let stars = [];
+
+    function resizeCanvas(){
+      const dpr = Math.min(window.devicePixelRatio || 1, 2);
+      canvas.width  = Math.floor(window.innerWidth  * dpr);
+      canvas.height = Math.floor(window.innerHeight * dpr);
+      canvas.style.width  = window.innerWidth + "px";
+      canvas.style.height = window.innerHeight + "px";
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+
+      const count = Math.floor((window.innerWidth * window.innerHeight) / 22000);
+      stars = Array.from({length: Math.max(18, Math.min(60, count))}, () => ({
+        x: Math.random() * window.innerWidth,
+        y: Math.random() * window.innerHeight * 0.55,
+        r: 0.6 + Math.random() * 1.6,
+        a: 0.25 + Math.random() * 0.55,
+        s: 0.006 + Math.random() * 0.012,
+        p: Math.random() * Math.PI * 2
+      }));
+    }
+
+    function drawStars(t){
+      ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
+      for (const st of stars){
+        const tw = (Math.sin(t * st.s + st.p) + 1) * 0.5;
+        const alpha = st.a * (0.55 + tw * 0.45);
+
+        ctx.globalAlpha = alpha;
+        ctx.beginPath();
+        ctx.arc(st.x, st.y, st.r * (0.85 + tw * 0.25), 0, Math.PI * 2);
+        ctx.fillStyle = "#ffffff";
+        ctx.fill();
+      }
+      ctx.globalAlpha = 1;
+      requestAnimationFrame(drawStars);
+    }
+
+    window.addEventListener("resize", resizeCanvas);
+
+    /***********************************************************
+     * Rosca Minijuego
+     ***********************************************************/
+    const roscaOverlay = document.getElementById("roscaOverlay");
+    const roscaPanel = document.getElementById("roscaPanel");
+    const roscaBtn = document.getElementById("roscaBtn");
+    const roscaClose = document.getElementById("roscaClose");
+    const roscaResult = document.getElementById("roscaResult");
+    const munecoPop = document.getElementById("munecoPop");
+
+    let roscaActive = false;
+    let munecoSet = new Set();
+    let sliceButtons = [];
+
+    function openRosca(){
+      startBackgroundMusic();
+      hint.classList.add("hidden");
+
+      roscaResult.classList.remove("show");
+      roscaResult.textContent = "";
+      munecoPop.classList.remove("show");
+      munecoPop.src = MUNECO_SRC;
+
+      for (const b of sliceButtons) b.remove();
+      sliceButtons = [];
+      munecoSet = new Set();
+
+      const idxs = [0,1,2,3,4,5].sort(() => Math.random() - 0.5);
+      munecoSet.add(idxs[0]);
+      munecoSet.add(idxs[1]);
+      munecoSet.add(idxs[2]);
+
+      for (let i=0; i<6; i++){
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "slice";
+        btn.style.setProperty("--rot", `${i * 60}deg`);
+        btn.setAttribute("aria-label", `Pedazo ${i+1}`);
+
+        // click en slice (botón): SOLO click, sin touchstart
+        btn.addEventListener("click", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          pickSlice(i);
+        }, { passive: false });
+
+        roscaPanel.appendChild(btn);
+        sliceButtons.push(btn);
+      }
+
+      roscaOverlay.classList.add("show");
+      roscaOverlay.setAttribute("aria-hidden", "false");
+      roscaActive = true;
+    }
+
+    function closeRosca(){
+      roscaOverlay.classList.remove("show");
+      roscaOverlay.setAttribute("aria-hidden", "true");
+      roscaActive = false;
+
+      for (const b of sliceButtons) b.remove();
+      sliceButtons = [];
+      munecoSet = new Set();
+      roscaResult.classList.remove("show");
+      munecoPop.classList.remove("show");
+    }
+
+    function pickSlice(i){
+      if (!roscaActive) return;
+
+      for (const b of sliceButtons) b.classList.add("disabled");
+
+      const hasMuneco = munecoSet.has(i);
+
+      if (hasMuneco){
+        roscaResult.textContent = "Ahora debes los tamalitos mi amor :3";
+        roscaResult.classList.add("show");
+        munecoPop.classList.add("show");
+      } else {
+        roscaResult.textContent = "Mmmm te salvaste por ahora";
+        roscaResult.classList.add("show");
+      }
+
+      setTimeout(() => closeRosca(), 2200);
+    }
+
+    /***********************************************************
+     * Interacción principal
+     * - Pantalla: pointerdown (evita doble en móvil)
+     * - Botones: SOLO click (evita salto doble)
+     ***********************************************************/
+    const tapCatcher = document.getElementById("tapCatcher");
+    const nextSongBtn = document.getElementById("nextSongBtn");
+
+    tapCatcher.addEventListener("pointerdown", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      if (roscaActive) return;
+
+      startBackgroundMusic();
+      playClickSound();
+
+      const x = e.clientX;
+      const y = e.clientY;
+
+      spawnHeart(x, y);
+      hint.classList.add("hidden");
+    }, { passive: false });
+
+    // Botón siguiente: SOLO click
+    nextSongBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      startBackgroundMusic();
+      nextTrack();
+      hint.classList.add("hidden");
+    }, { passive: false });
+
+    // Botón rosca: SOLO click
+    roscaBtn.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      startBackgroundMusic();
+      hint.classList.add("hidden");
+      openRosca();
+    }, { passive: false });
+
+    // Cerrar rosca: SOLO click
+    roscaClose.addEventListener("click", (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      closeRosca();
+    }, { passive: false });
+
+    // Click fuera del panel cierra (opcional)
+    roscaOverlay.addEventListener("click", (e) => {
+      if (e.target === roscaOverlay) closeRosca();
+    });
+
+    /***********************************************************
+     * Init
+     ***********************************************************/
+    resizeCanvas();
+    requestAnimationFrame(drawStars);
+
+    loadIndex();
+    showSongLabel();
+  </script>
+</body>
+</html>
