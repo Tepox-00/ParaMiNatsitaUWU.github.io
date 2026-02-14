@@ -382,7 +382,7 @@ function initSpaceGame() {
 
     function loop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        progress += 0.005;
+        progress += 0.01;
         document.getElementById('space-prog').innerText = Math.floor(progress);
 
         if(state.keys.a) player.x -= player.speed;
@@ -407,7 +407,7 @@ function initSpaceGame() {
         });
 
         spawnTimer++;
-        if(spawnTimer > 10) {
+        if(spawnTimer > 40) {
             enemies.push({ x: Math.random() * (canvas.width - 30), y: -50, w: 30, h: 30, type: 'rock', hp: 1, speed: 0.75 });
             spawnTimer = 0;
         }
@@ -510,4 +510,5 @@ function startFinalScene() {
     }
     loop();
     document.getElementById('btn-restart').onclick = () => location.reload();
+
 }
