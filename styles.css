@@ -1,0 +1,220 @@
+@font-face {
+    font-family: 'Bryndan';
+    src: url('assets/fonts/BryndanWriteBook-nGPM/BryndanWrite.ttf');
+}
+
+:root {
+    --bg-color: #0d0221;
+    --primary: #ff4d6d;
+    --secondary: #590d22;
+    --accent: #ff9e00;
+    --purple: #3c096c;
+    --text: #fff0f3;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    touch-action: none;
+}
+
+body {
+    background-color: var(--bg-color);
+    color: var(--text);
+    font-family: 'Bryndan', 'Courier New', monospace;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+    position: fixed; /* Evita rebotes de scroll en móviles */
+}
+
+#game-container {
+    width: 100%;
+    height: 100%;
+    position: relative;
+}
+
+.scene {
+    display: none;
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+.scene.active {
+    display: flex;
+}
+
+/* --- Intro Adaptada --- */
+.intro-content {
+    width: 90%;
+    max-width: 600px;
+    background: rgba(13, 2, 33, 0.9);
+    border: 2px solid var(--primary);
+    border-radius: 15px;
+    padding: 15px;
+    text-align: center;
+    box-shadow: 0 0 20px var(--purple);
+    z-index: 10;
+    margin-top: -80px; /* Sube la caja para no chocar con controles */
+}
+
+#intro-img {
+    max-width: 100%;
+    max-height: 25vh; /* Altura controlada para pantallas pequeñas */
+    object-fit: contain;
+    border-radius: 10px;
+    margin-bottom: 15px;
+    border: 2px solid var(--accent);
+}
+
+.dialog-box p {
+    font-size: 1.1rem;
+    line-height: 1.4;
+    margin-bottom: 15px;
+    text-shadow: 1px 1px 2px black;
+}
+
+.buttons-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 20px;
+    position: relative;
+    min-height: 60px;
+}
+
+button {
+    padding: 10px 20px;
+    font-family: inherit;
+    font-size: 1.1rem;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+button:active { transform: scale(0.95); }
+
+.btn-primary {
+    background-color: var(--primary);
+    color: white;
+    box-shadow: 0 4px 0 var(--secondary);
+}
+
+.btn-secondary {
+    background-color: var(--purple);
+    color: white;
+    border: 1px solid var(--accent);
+}
+
+#btn-no { position: relative; transition: transform 0.1s; }
+
+.hidden { display: none !important; }
+
+/* --- Juegos --- */
+canvas {
+    background-color: #10002b;
+    width: 100%;
+    height: 100%;
+    display: block;
+    image-rendering: pixelated;
+}
+
+.hud {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    z-index: 100;
+    font-size: 1rem;
+    background: rgba(0,0,0,0.7);
+    padding: 5px 10px;
+    border-radius: 5px;
+    border: 1px solid var(--primary);
+}
+
+/* --- Final y Overlay --- */
+.final-overlay {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    background: rgba(13, 2, 33, 0.8);
+    padding: 15px;
+    border: 1px solid var(--accent);
+    text-align: right;
+    border-radius: 10px;
+    z-index: 200;
+    max-width: 250px;
+}
+
+.final-overlay h1 { font-size: 1.1rem; margin-bottom: 10px; }
+
+#scene-final {
+    background-image: url('assets/img/fondo/final.png');
+    background-size: cover;
+    background-position: center;
+}
+
+/* --- Controles Celular --- */
+#mobile-controls {
+    position: fixed;
+    bottom: 15px;
+    width: 100%;
+    z-index: 1000;
+    pointer-events: none;
+    display: flex;
+    justify-content: space-between;
+    padding: 0 15px;
+}
+
+.dpad, .actions {
+    pointer-events: auto;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.dpad-mid { display: flex; gap: 8px; }
+
+#mobile-controls button {
+    width: 50px;
+    height: 50px;
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(5px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    color: white;
+    font-size: 1.3rem;
+    margin: 4px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#mobile-controls button:active { background: rgba(255, 77, 109, 0.5); }
+
+@media (min-width: 1024px) {
+    #mobile-controls { display: none; }
+    .intro-content { margin-top: 0; }
+}
+
+#message-overlay {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(13, 2, 33, 0.95);
+    padding: 25px;
+    border: 2px solid var(--accent);
+    border-radius: 15px;
+    text-align: center;
+    z-index: 500;
+    width: 80%;
+    max-width: 350px;
+}
