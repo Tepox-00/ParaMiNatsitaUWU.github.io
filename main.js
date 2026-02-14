@@ -470,7 +470,8 @@ function startFinalScene() {
     let camZ = 0;
     function loop() {
         ctx.clearRect(0,0, canvas.width, canvas.height);
-        const starSpeed = 15; const photoSpeed = 1; 
+        const starSpeed = 15; 
+        let photoSpeed = state.isMobile ? 2 : 1;
         camZ += photoSpeed; 
         const cx = canvas.width / 2; const cy = canvas.height / 2;
         const sensitivity = 0.05; 
@@ -512,3 +513,4 @@ function startFinalScene() {
     document.getElementById('btn-restart').onclick = () => location.reload();
 
 }
+
