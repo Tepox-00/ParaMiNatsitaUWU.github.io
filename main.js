@@ -382,7 +382,8 @@ function initSpaceGame() {
 
     function loop() {
         ctx.clearRect(0, 0, canvas.width, canvas.height);
-        progress += 0.01;
+        let aux = state.isMobile ? 0.1 : 0.01;
+        progress += aux;
         document.getElementById('space-prog').innerText = Math.floor(progress);
 
         if(state.keys.a) player.x -= player.speed;
@@ -513,4 +514,5 @@ function startFinalScene() {
     document.getElementById('btn-restart').onclick = () => location.reload();
 
 }
+
 
